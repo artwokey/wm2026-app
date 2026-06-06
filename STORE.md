@@ -59,25 +59,23 @@ Hinweis: Dies ist eine inoffizielle, werbefreie Fan-App. Sie steht in keiner Ver
 
 ---
 
-## B) Datenschutz-URL über GitHub Pages bereitstellen (Pflicht)
+## B) Hosting über GitHub Pages — ERLEDIGT ✅
 
-Google Play verlangt eine **öffentlich erreichbare URL** zur Datenschutzerklärung. Die Dateien
-`datenschutz.html` und `impressum.html` liegen bereits im App-Ordner und sind so gebaut, dass sie
-ohne Änderung gehostet werden können.
+Die App inkl. `datenschutz.html` und `impressum.html` liegt im öffentlichen Repo
+**https://github.com/artwokey/wm2026-app** und ist über GitHub Pages live:
 
-1. Auf https://github.com einloggen → **New repository** → Name z. B. `wm2026-app`,
-   Sichtbarkeit **Public** → *Create*.
-2. **Add file → Upload files** → `datenschutz.html` und `impressum.html` (aus diesem Ordner) hochladen → *Commit*.
-3. Repo → **Settings → Pages** → unter *Build and deployment*: Source = **Deploy from a branch**,
-   Branch = **main**, Ordner = **/(root)** → *Save*.
-4. Nach ein paar Minuten ist die Seite erreichbar unter:
-   ```
-   https://<dein-github-name>.github.io/wm2026-app/datenschutz.html
-   ```
-5. Diese URL in der **Play Console → App-Inhalte → Datenschutzerklärung** eintragen.
-   (Das Impressum ist unter `…/impressum.html` erreichbar und in der App verlinkt.)
+| Seite | URL |
+|-------|-----|
+| App (Demo/PWA) | https://artwokey.github.io/wm2026-app/ |
+| **Datenschutz** | **https://artwokey.github.io/wm2026-app/datenschutz.html** |
+| Impressum | https://artwokey.github.io/wm2026-app/impressum.html |
 
-> Tipp: Dieselbe URL kann später auch im Store-Eintrag unter „Website“ verwendet werden.
+**→ In der Play Console eintragen:** App-Inhalte → Datenschutzerklärung →
+`https://artwokey.github.io/wm2026-app/datenschutz.html`
+
+(Optional im Store-Eintrag unter „Website": dieselbe URL bzw. die App-URL.)
+
+Aktualisieren später: Dateien im Repo ändern und neu pushen (`git push`), GitHub Pages baut automatisch neu.
 
 ---
 
