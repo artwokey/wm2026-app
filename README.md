@@ -82,13 +82,6 @@ holt sie bei Internet von football-data.org.
 > Paket-ID `com.wm2026.tracker`, min-SDK 23 (Android 6.0+), Debug-signiert. Für eine Veröffentlichung
 > im Play Store wäre ein eigener Release-Key + `.aab` nötig.
 
-### Selbst neu bauen
-
-Der Build läuft ohne Android Studio/Gradle über ein schlankes Skript
-(`C:\WMBuild\build-apk.ps1`): `aapt` → `javac` → `d8` → `aapt add` → `zipalign` → `apksigner`.
-Voraussetzungen (einmalig nach `C:\WMBuild` installiert): JDK 17 + Android cmdline-tools,
-`platforms;android-34`, `build-tools;34.0.0`. Das Android-Projekt (WebView-Hülle) liegt unter
-`C:\WMBuild\app`, die eingebettete Web-App unter `C:\WMBuild\app\assets\app`.
 
 ## Projektstruktur
 
