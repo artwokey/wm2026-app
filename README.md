@@ -13,8 +13,12 @@ Tor-Ticker, Tor-Benachrichtigung).
   CEST/CET), Filter nach Gruppe/Phase und Team, „Heute“-Sprung, Live-Score-Anzeige.
 - **Tabellen** – alle **12 Gruppen (A–L)** mit Sp/S/U/N/Toren/Diff/Punkten, Markierung der
   Qualifizierten (Top 2 + 8 beste Gruppendritte).
-- **Statistik** – **Torschützenliste** und **Weiße Westen** (Spiele zu Null je Mannschaft/Torhüter).
-  Eine Scorer-/Vorlagenwertung ist nicht enthalten, da die kostenlose Datenquelle keine Assists liefert.
+- **Statistik** – **Torschützenliste mit Toren und Vorlagen** (football-data.org liefert Assists)
+  und **Weiße Westen** (Spiele zu Null je Mannschaft/Torhüter).
+- **Live-Ticker mit echten Ereignissen** – Tore und **Platzverweise** mit Spielername und Minute
+  (FIFA-API); im Spielplan zeigt ein rotes Karten-Symbol Platzverweise je Team.
+- **Countdown** – ab ~1 Stunde vor Anstoß erscheint die Partie im Live-Tab als Karte
+  („Spiel beginnt in X Minuten").
 - **Echte Länderflaggen** (lokale SVGs) überall neben den Teamnamen – sichtbar auf Windows, Android und offline.
 - **K.-o.-Baum** – Sechzehntelfinale bis Finale; Platzhalter werden durch echte Paarungen ersetzt,
   sobald sie feststehen.
@@ -25,9 +29,18 @@ Tor-Ticker, Tor-Benachrichtigung).
 
 - **Eingebaut (offline):** kompletter Spielplan, alle Gruppen und Anstoßzeiten
   (Quelle: `openfootball/worldcup.json`, Public Domain). Funktioniert ohne Internet.
-- **Live (kostenlos, ohne Schlüssel):** Ergebnisse und Torschützen von **OpenLigaDB**
-  (`api.openligadb.de`). Alle 12 Gruppentabellen und die Weißen Westen werden daraus berechnet.
-- **Einschränkung:** OpenLigaDB liefert keine Assists – daher gibt es keine Scorer-/Vorlagenwertung.
+- **Live (über Cloudflare Worker):** Spielstände, Torschützen und offizielle
+  Gruppentabellen von **football-data.org**, abgerufen über einen **Cloudflare Worker**
+  (`…workers.dev`), der den API-Token serverseitig hält — **kein API-Token im Client oder Repo**.
+  Die Weißen Westen werden daraus berechnet. Datenbereitstellung: football-data.org.
+- **Ereignisse (ohne Schlüssel):** Tore und Platzverweise mit Spielername und echter Minute von der
+  öffentlichen **FIFA-API** (`api.fifa.com`, Competition 17 / Saison 285023). Beendete Spiele werden
+  einmalig abgerufen und dauerhaft gecacht (`wm:cache → fd.events`).
+- **Fallback:** Sind die FIFA-Ereignisse nicht erreichbar, erkennt der Tor-Ticker Tore an
+  Spielstand-Änderungen zwischen zwei football-data-Abrufen (Minute geschätzt „~12", ohne Name).
+- **CORS:** Der Cloudflare Worker setzt `Access-Control-Allow-Origin: *` — die Web-App läuft daher
+  auf jedem Origin (auch GitHub Pages); `api.fifa.com` erlaubt ohnehin jeden Origin (`*`). In der
+  APK-WebView gibt es keine CORS-Prüfung.
 
 ## Lokal starten / testen
 
@@ -45,9 +58,10 @@ Dann `http://localhost:8080` im Browser öffnen. (Ein Webserver ist nötig, weil
 
 ## Live-Daten
 
-Nichts einzurichten: Die App holt Ergebnisse und Torschützen automatisch von **OpenLigaDB**
-(kostenlos, ohne Anmeldung). Über **Mehr → Jetzt aktualisieren** oder den ↻-Button oben rechts
-manuell auffrischen. Antworten werden kurz gecacht (TTL) und für den Offline-Betrieb gespeichert.
+Die App holt Spielstände, Torschützen und Tabellen automatisch von **football-data.org**
+(kostenloser Tarif, 10 Anfragen/Minute; der API-Token steckt in `assets/js/api.js`). Über
+**Mehr → Jetzt aktualisieren** oder den ↻-Button oben rechts manuell auffrischen. Antworten
+werden kurz gecacht (TTL) und für den Offline-Betrieb gespeichert.
 
 > Hinweis: Vor Turnierbeginn liegen noch keine Ergebnisse vor – Spielplan, Gruppen und Anstoßzeiten
 > sind aber vollständig sichtbar. Tabellen/Listen füllen sich, sobald Spiele gewertet sind.
@@ -57,7 +71,7 @@ manuell auffrischen. Antworten werden kurz gecacht (TTL) und für den Offline-Be
 Eine fertige, signierte **`WM2026.apk`** (≈0,44 MB) ist bereits gebaut und liegt im Projektordner
 (sowie in *Downloads* und auf dem *Desktop*). Sie ist eine eigenständige **WebView-App**, in die
 die komplette Web-App (inkl. Spielplan, Flaggen) eingebettet ist – läuft sofort offline, Live-Daten
-holt sie bei Internet von OpenLigaDB.
+holt sie bei Internet von football-data.org.
 
 **Installieren (Sideload):**
 1. `WM2026.apk` aufs Android-Gerät kopieren (USB, Mail an sich selbst, Cloud …).
@@ -86,7 +100,7 @@ assets/css/app.css      Styling (dunkles WM-Theme)
 assets/js/util.js       Zeit (dt.)/Status/HTML-Helfer
 assets/js/teams.js      Team-Metadaten (Deutsch, Flagge), Namens-Matching
 assets/js/store.js      Daten laden, Live-Merge, localStorage
-assets/js/api.js        OpenLigaDB (Ergebnisse/Torschützen) + Cache
+assets/js/api.js        football-data.org (Spielstände/Torschützen/Tabellen) + Cache
 assets/js/schedule.js   Spielplan
 assets/js/standings.js  Gruppentabellen
 assets/js/stats.js      Torschützen / Weiße Westen

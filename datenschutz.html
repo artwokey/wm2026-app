@@ -63,13 +63,20 @@
     <p>Diese Daten verlassen dein Gerät nicht und werden nicht an den Anbieter übertragen. Du kannst sie
     jederzeit über „Mehr → Cache leeren" bzw. durch Löschen der App-Daten/Deinstallation der App entfernen.</p>
 
-    <h2>4. Abruf von Live-Spieldaten (OpenLigaDB)</h2>
-    <p>Zur Anzeige aktueller Ergebnisse und Torschützen ruft die App Daten von der Schnittstelle
-    <strong>OpenLigaDB</strong> (<a href="https://www.openligadb.de" target="_blank" rel="noopener">www.openligadb.de</a>)
-    unter <code>https://api.openligadb.de</code> ab. Bei jedem Abruf wird – technisch zwingend wie bei jedem
-    Aufruf einer Internetadresse – deine <strong>IP-Adresse</strong> sowie Standard-Verbindungsdaten an den
-    Server von OpenLigaDB übertragen. Hierauf hat der Anbieter dieser App keinen Einfluss; für diese
-    Verarbeitung ist der Betreiber von OpenLigaDB eigenständig verantwortlich.</p>
+    <h2>4. Abruf von Live-Spieldaten (Cloudflare, football-data.org, FIFA)</h2>
+    <p>Zur Anzeige aktueller Ergebnisse, Tabellen und Torschützen ruft die App Daten von
+    <strong>football-data.org</strong> (<a href="https://www.football-data.org" target="_blank" rel="noopener">www.football-data.org</a>)
+    ab. Aus technischen Gründen (Schutz des API-Schlüssels, CORS) erfolgt dieser Abruf nicht direkt, sondern
+    über einen zwischengeschalteten <strong>Cloudflare Worker</strong> (Cloudflare, Inc.) unter
+    <code>https://wmapp2026-api.r-mertens.workers.dev</code>, der die Anfrage serverseitig an
+    <code>https://api.football-data.org</code> weiterreicht. Für die Ereignisse eines Spiels (Tore und
+    Platzverweise mit Spielername und Minute) ruft die App zusätzlich die öffentliche Schnittstelle der
+    <strong>FIFA</strong> unter <code>https://api.fifa.com</code> direkt ab. Bei jedem Abruf wird – technisch
+    zwingend wie bei jedem Aufruf einer Internetadresse – deine <strong>IP-Adresse</strong> sowie
+    Standard-Verbindungsdaten an den jeweils kontaktierten Server (Cloudflare bzw. FIFA) übertragen.
+    Für diese Verarbeitung sind die Betreiber der jeweiligen Schnittstelle (Cloudflare, football-data.org
+    bzw. FIFA) eigenständig verantwortlich. <strong>Cloudflare</strong> kann Daten dabei auch außerhalb der
+    EU (u. a. in den USA) verarbeiten.</p>
     <p>Rechtsgrundlage für den Abruf ist unser berechtigtes Interesse an der Bereitstellung aktueller
     Spielinformationen (Art. 6 Abs. 1 lit. f DSGVO). Der Abruf erfolgt nur, wenn die App geöffnet ist und
     eine Internetverbindung besteht. Im reinen Offline-Betrieb findet keine Datenübertragung statt.</p>

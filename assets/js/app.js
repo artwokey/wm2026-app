@@ -76,12 +76,18 @@
 
   // ---- Match-Detail-Dialog ---------------------------------------------------
 
-  function goalLine(g) {
-    var t = WM.teams.info(g.team);
+  // Eine Zeile im Spielverlauf des Match-Detail-Dialogs (Tor oder Platzverweis).
+  function eventLine(g) {
+    var t = g.team ? WM.teams.info(g.team) : null;
+    var flag = t ? '<span class="flag">' + t.flag + '</span> ' : '';
+    if (g.type === 'red') {
+      return '<li><span class="min">' + U.esc(g.minute) + "'</span> " + flag +
+        '<span class="rcard" title="Platzverweis"></span> <b>' + U.esc(g.player || 'Platzverweis') + '</b></li>';
+    }
     var tag = g.detail === 'Penalty' ? ' (Elfmeter)' : g.detail === 'Own Goal' ? ' (Eigentor)' : '';
     var assist = g.assist ? ' <span class="assist">Vorlage: ' + U.esc(g.assist) + '</span>' : '';
-    return '<li><span class="min">' + U.esc(g.minute) + "'</span> " +
-      '<span class="flag">' + t.flag + '</span> <b>' + U.esc(g.player || '–') + '</b>' + tag + assist + '</li>';
+    return '<li><span class="min">' + U.esc(g.minute) + "'</span> " + flag +
+      '<span class="tick-ball">⚽</span> <b>' + U.esc(g.player || 'Tor') + '</b>' + tag + assist + '</li>';
   }
 
   function openMatch(id) {
@@ -93,19 +99,24 @@
     var heading = m.phase === 'group' ? ('Gruppe ' + m.group) : U.roundDe(m.round);
     var score = (live && live.hg != null && live.ag != null) ? (live.hg + ' : ' + live.ag) : '–';
     var status = live ? U.statusLabel(live.statusShort, live.elapsed) : '';
+    var localIso = (WM.store.getLive().localKickoff || {})[id];
+    var localStr = localIso ? U.localTime(localIso) : '';
+    var ortszeit = (localStr && localStr !== U.time(m.kickoffUtc)) ? ('<br>' + localStr + ' (Ortszeit)') : '';
 
     var overlay = U.el('<div class="modal-bg"></div>');
     overlay.innerHTML =
       '<div class="modal" role="dialog" aria-modal="true">' +
         '<button class="modal-x" aria-label="Schließen">×</button>' +
-        '<div class="modal-meta">' + U.esc(heading) + ' · ' + U.esc(m.ground || '') + '</div>' +
-        '<div class="modal-when">' + U.fullDate(m.kickoffUtc) + '<br>' + U.time(m.kickoffUtc) + ' (dt. Zeit)</div>' +
-        '<div class="modal-score">' +
-          '<span class="ms-team"><span class="flag big">' + info1.flag + '</span>' + U.esc(info1.name) + '</span>' +
-          '<span class="ms-val">' + U.esc(score) + (status ? '<small>' + U.esc(status) + '</small>' : '') + '</span>' +
-          '<span class="ms-team"><span class="flag big">' + info2.flag + '</span>' + U.esc(info2.name) + '</span>' +
+        '<div class="modal-body">' +
+          '<div class="modal-meta">' + U.esc(heading) + ' · ' + U.esc(m.ground || '') + '</div>' +
+          '<div class="modal-when">' + U.fullDate(m.kickoffUtc) + '<br>' + U.time(m.kickoffUtc) + ' (dt. Zeit)' + ortszeit + '</div>' +
+          '<div class="modal-score">' +
+            '<span class="ms-team"><span class="flag big">' + info1.flag + '</span>' + U.esc(info1.name) + '</span>' +
+            '<span class="ms-val">' + U.esc(score) + (status ? '<small>' + U.esc(status) + '</small>' : '') + '</span>' +
+            '<span class="ms-team"><span class="flag big">' + info2.flag + '</span>' + U.esc(info2.name) + '</span>' +
+          '</div>' +
+          '<div class="modal-goals" id="modal-goals"></div>' +
         '</div>' +
-        '<div class="modal-goals" id="modal-goals"></div>' +
       '</div>';
 
     function close() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
@@ -115,8 +126,8 @@
 
     var goalsEl = overlay.querySelector('#modal-goals');
     if (live && (live.finished || live.live)) {
-      WM.api.fetchEvents(id).then(function (goals) {
-        if (goals.length) goalsEl.innerHTML = '<h4>Tore</h4><ul class="goals">' + goals.map(goalLine).join('') + '</ul>';
+      WM.api.fetchEvents(id).then(function (events) {
+        if (events.length) goalsEl.innerHTML = '<h4>Spielverlauf</h4><ul class="goals">' + events.map(eventLine).join('') + '</ul>';
       });
     }
   }
@@ -133,6 +144,7 @@
 
   // ---- Auto-Refresh (adaptives Polling) --------------------------------------
   var LIVE_INTERVAL = 20 * 1000;    // bei laufenden Spielen
+  var SOON_INTERVAL = 60 * 1000;    // < 1 h vor Anstoß: Countdown aktualisieren, Anpfiff schnell erkennen
   var IDLE_INTERVAL = 120 * 1000;   // sonst – fängt Anpfiff / neue Live-Spiele
   var pollTimer = null;
 
@@ -141,12 +153,20 @@
     return Object.keys(byId).some(function (id) { return byId[id].live; });
   }
 
+  function anySoon() {
+    var now = Date.now();
+    return WM.store.matches().some(function (m) {
+      var diff = new Date(m.kickoffUtc).getTime() - now;
+      return diff > 0 && diff <= 60 * 60 * 1000;
+    });
+  }
+
   function scheduleNext() {
     clearTimeout(pollTimer);
     if (document.hidden) return;     // im Hintergrund pausieren
-    var delay = anyLive() ? LIVE_INTERVAL : IDLE_INTERVAL;
+    var delay = anyLive() ? LIVE_INTERVAL : anySoon() ? SOON_INTERVAL : IDLE_INTERVAL;
     pollTimer = setTimeout(function () {
-      // bei Live-Spielen force=true, um die 60-s-TTL in api.js zu umgehen.
+      // bei Live-Spielen force=true, um die 55-s-TTL in api.js zu umgehen.
       refresh(anyLive()).then(scheduleNext, scheduleNext);
     }, delay);
   }
@@ -160,7 +180,16 @@
   function notifyEnabled() {
     try { return localStorage.getItem(NOTIFY_LS) === '1'; } catch (e) { return false; }
   }
-  function goalKey(id, g) { return id + '|' + g.minute + '|' + (g.player || ''); }
+  // Schlüssel = Spiel + Team + laufende Tornummer des Teams. Bleibt stabil,
+  // wenn das geschätzte Protokoll (goalLog) später durch FIFA-Ereignisse mit
+  // echter Minute und Namen ersetzt wird — sonst gäbe es doppelte Hinweise.
+  function goalKeysFor(id, goals) {
+    var perTeam = {};
+    return goals.map(function (g) {
+      var n = perTeam[g.teamKey] = (perTeam[g.teamKey] || 0) + 1;
+      return id + '|' + g.teamKey + '|' + n;
+    });
+  }
 
   function announceGoal(id, g) {
     var live = WM.store.getLive();
@@ -188,14 +217,15 @@
     if (knownGoalKeys === null) {            // erster Aufruf: nur Baseline, kein Hinweis
       knownGoalKeys = {};
       Object.keys(gbm).forEach(function (id) {
-        gbm[id].forEach(function (g) { knownGoalKeys[goalKey(id, g)] = 1; });
+        goalKeysFor(id, gbm[id]).forEach(function (k) { knownGoalKeys[k] = 1; });
       });
       return;
     }
     Object.keys(gbm).forEach(function (id) {
       var isLive = !!(byId[id] && byId[id].live);
-      gbm[id].forEach(function (g) {
-        var k = goalKey(id, g);
+      var keys = goalKeysFor(id, gbm[id]);
+      gbm[id].forEach(function (g, i) {
+        var k = keys[i];
         if (knownGoalKeys[k]) return;
         knownGoalKeys[k] = 1;
         if (isLive) announceGoal(id, g);

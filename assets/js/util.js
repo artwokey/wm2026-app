@@ -37,6 +37,12 @@
 
   function el(html) { var t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
 
+  // Spielminute ("45", "~52", "90+2") -> sortierbarer Zahlenwert.
+  function minuteVal(min) {
+    var m = /^~?(\d+)(?:\+(\d+))?/.exec(String(min == null ? '' : min));
+    return m ? parseInt(m[1], 10) + (m[2] ? parseInt(m[2], 10) / 100 : 0) : 9999;
+  }
+
   var ROUND_DE = {
     'Round of 32': 'Sechzehntelfinale',
     'Round of 16': 'Achtelfinale',
@@ -47,9 +53,17 @@
   };
   function roundDe(round) { return ROUND_DE[round] || round || ''; }
 
+  // FIFA-Kalender liefert LocalDate als Ortszeit-Wanduhrzeit des Stadions, aber
+  // mit irreführendem "Z"-Suffix (keine echte UTC-Zeit) — daher als Roh-String
+  // parsen statt über Date/Zeitzone.
+  function localTime(localIso) {
+    var m = /T(\d{2}):(\d{2})/.exec(String(localIso == null ? '' : localIso));
+    return m ? (m[1] + ':' + m[2] + ' Uhr') : '';
+  }
+
   WM.util = {
     TZ: TZ, time: time, dayHeader: dayHeader, fullDate: fullDate, dayKey: dayKey, todayKey: todayKey,
     statusLabel: statusLabel, isLiveStatus: isLiveStatus, isFinishedStatus: isFinishedStatus,
-    esc: esc, el: el, roundDe: roundDe
+    esc: esc, el: el, roundDe: roundDe, minuteVal: minuteVal, localTime: localTime
   };
 })(window.WM = window.WM || {});

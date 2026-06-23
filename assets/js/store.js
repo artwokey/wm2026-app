@@ -4,7 +4,7 @@
 (function (WM) {
   'use strict';
 
-  var LS_CACHE    = 'wm:cache';      // { openliga, ts:{...} }
+  var LS_CACHE    = 'wm:cache';      // { fd:{matches,scorers,standings,goalLog}, ts:{...} }
   var GROUP_LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
 
   var state = {
@@ -13,7 +13,7 @@
     teamGroup: {},        // teamKey -> 'A'
     live: {               // rohe API-Antworten + Ableitungen
       fixtures: null, standings: null, topscorers: null, topassists: null,
-      cleanSheets: null, byMatchId: {}, ts: {}, ok: false, error: null
+      cleanSheets: null, scorerPoints: null, localKickoff: {}, byMatchId: {}, ts: {}, ok: false, error: null
     }
   };
 

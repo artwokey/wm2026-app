@@ -16,28 +16,54 @@
       '<span class="lc-name">' + U.esc(t.name) + '</span></span>';
   }
 
-  // Eine Ticker-Zeile (ein Tor) – analog goalLine in app.js.
-  function goalTick(g) {
-    var t = WM.teams.info(g.teamKey);
-    var tag = g.isPenalty ? ' <i class="gt-tag">(Elfmeter)</i>'
-            : g.isOwnGoal ? ' <i class="gt-tag">(Eigentor)</i>' : '';
+  // Eine Ticker-Zeile (Tor oder Platzverweis) – analog eventLine in app.js.
+  function eventTick(e) {
+    var t = e.teamKey ? WM.teams.info(e.teamKey) : null;
+    var flag = t ? '<span class="flag">' + t.flag + '</span>' : '';
+    if (e.type === 'red') {
+      return '<li class="tick">' +
+        '<span class="tick-min">' + U.esc(e.minute) + "'</span>" + flag +
+        '<span class="rcard" title="Platzverweis"></span>' +
+        '<b class="tick-player">' + U.esc(e.player || 'Platzverweis') + '</b>' +
+        '</li>';
+    }
+    var tag = e.isPenalty ? ' <i class="gt-tag">(Elfmeter)</i>'
+            : e.isOwnGoal ? ' <i class="gt-tag">(Eigentor)</i>' : '';
+    var assist = e.assist ? ' <i class="gt-tag">Vorlage: ' + U.esc(e.assist) + '</i>' : '';
     return '<li class="tick">' +
-      '<span class="tick-min">' + U.esc(g.minute) + "'</span>" +
-      '<span class="flag">' + t.flag + '</span>' +
-      '<b class="tick-player">' + U.esc(g.player || '–') + '</b>' + tag +
+      '<span class="tick-min">' + U.esc(e.minute) + "'</span>" + flag +
+      '<span class="tick-ball">⚽</span>' +
+      '<b class="tick-player">' + U.esc(e.player || 'Tor') + '</b>' + tag + assist +
       '</li>';
   }
 
-  function liveCard(m, live, goals) {
+  // Tore + Platzverweise eines Spiels chronologisch zusammenführen.
+  function mergeEvents(goals, reds) {
+    var ev = (goals || []).map(function (g) {
+      return { type: 'goal', minute: g.minute, player: g.player, teamKey: g.teamKey,
+               isPenalty: g.isPenalty, isOwnGoal: g.isOwnGoal, assist: g.assist };
+    }).concat((reds || []).map(function (r) {
+      return { type: 'red', minute: r.minute, player: r.player, teamKey: r.teamKey };
+    }));
+    ev.sort(function (a, b) { return U.minuteVal(a.minute) - U.minuteVal(b.minute); });
+    return ev;
+  }
+
+  function liveCard(m, live, goals, reds) {
     var hg = live.hg != null ? live.hg : '–';
     var ag = live.ag != null ? live.ag : '–';
-    var ticker = (goals && goals.length)
-      ? '<ul class="ticker">' + goals.map(goalTick).join('') + '</ul>'
-      : '<p class="tick-empty">Noch keine Tore.</p>';
+    var clock = U.statusLabel(live.statusShort, live.elapsed);
+    var events = mergeEvents(goals, reds);
+    // Ohne Protokoll: Tore können vor dem App-Start gefallen sein (kein Verlauf verfügbar).
+    var ticker = events.length
+      ? '<ul class="ticker">' + events.map(eventTick).join('') + '</ul>'
+      : '<p class="tick-empty">' + ((live.hg > 0 || live.ag > 0)
+          ? 'Tor-Ticker läuft ab jetzt mit – bisherige Tore ohne Verlauf.'
+          : 'Noch keine Tore.') + '</p>';
     return '<div class="live-card" data-mid="' + m.id + '">' +
       '<div class="lc-top">' +
         '<span class="badge ' + (m.phase === 'group' ? 'grp' : 'ko') + '">' + U.esc(heading(m)) + '</span>' +
-        '<span class="lc-live"><span class="lc-dot"></span>LIVE</span>' +
+        '<span class="lc-live"><span class="lc-dot"></span>' + (clock ? U.esc(clock) : 'LIVE') + '</span>' +
       '</div>' +
       '<div class="lc-main">' +
         teamCol(live.homeKey || m.team1, 'home') +
@@ -46,6 +72,25 @@
       '</div>' +
       (m.ground ? '<div class="lc-venue">' + U.esc(m.ground) + '</div>' : '') +
       ticker +
+    '</div>';
+  }
+
+  // Karte für Spiele kurz vor dem Anstoß („Livemodus" mit Countdown).
+  function soonCard(m, now) {
+    var mins = Math.max(1, Math.round((new Date(m.kickoffUtc).getTime() - now) / 60000));
+    return '<div class="live-card soon-card" data-mid="' + m.id + '">' +
+      '<div class="lc-top">' +
+        '<span class="badge ' + (m.phase === 'group' ? 'grp' : 'ko') + '">' + U.esc(heading(m)) + '</span>' +
+        '<span class="lc-soon">⏱ in ' + mins + ' Min</span>' +
+      '</div>' +
+      '<div class="lc-main">' +
+        teamCol(m.team1, 'home') +
+        '<span class="lc-score lc-vs">' + U.time(m.kickoffUtc).replace(' Uhr', '') + '</span>' +
+        teamCol(m.team2, 'away') +
+      '</div>' +
+      (m.ground ? '<div class="lc-venue">' + U.esc(m.ground) + '</div>' : '') +
+      '<p class="tick-empty">Spiel beginnt in ' + mins + ' Minute' + (mins === 1 ? '' : 'n') +
+        ' – der Live-Ticker startet hier automatisch.</p>' +
     '</div>';
   }
 
@@ -85,10 +130,14 @@
     '</div>';
   }
 
+  // Fenster, ab dem ein anstehendes Spiel als Countdown-Karte erscheint.
+  var SOON_MS = 60 * 60 * 1000;
+
   function render(host) {
     var L = WM.store.getLive();
     var byId = L.byMatchId || {};
     var goalsByMatch = L.goalsByMatch || {};
+    var redsByMatch = L.redsByMatch || {};
     var todayK = U.todayKey();
     var now = Date.now();
 
@@ -97,10 +146,15 @@
     });
 
     var liveMatches = all.filter(function (m) { var b = byId[m.id]; return b && b.live; });
+    var soon = all.filter(function (m) {
+      var b = byId[m.id];
+      var diff = new Date(m.kickoffUtc).getTime() - now;
+      return diff > 0 && diff <= SOON_MS && !(b && (b.live || b.finished));
+    });
     var upcoming = all.filter(function (m) {
       var b = byId[m.id];
       return U.dayKey(m.kickoffUtc) === todayK &&
-        new Date(m.kickoffUtc).getTime() > now &&
+        new Date(m.kickoffUtc).getTime() > now + SOON_MS &&
         !(b && (b.live || b.finished));
     });
     var finishedToday = all.filter(function (m) {
@@ -109,9 +163,10 @@
     });
 
     var html = '';
-    if (liveMatches.length) {
+    if (liveMatches.length || soon.length) {
       html += '<div class="live-section live-now">' +
-        liveMatches.map(function (m) { return liveCard(m, byId[m.id], goalsByMatch[m.id]); }).join('') +
+        liveMatches.map(function (m) { return liveCard(m, byId[m.id], goalsByMatch[m.id], redsByMatch[m.id]); }).join('') +
+        soon.map(function (m) { return soonCard(m, now); }).join('') +
         '</div>';
     } else {
       html += emptyState(all, now);

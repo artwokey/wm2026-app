@@ -1,6 +1,6 @@
 # Play-Store-Veröffentlichung – Vorlagen & Checkliste
 
-App: **WM 2026 Spielplan & Live** · inoffizielle, werbefreie Fan-App · Datenquelle OpenLigaDB.
+App: **WM 2026 Spielplan & Live** · inoffizielle, werbefreie Fan-App · Datenquelle football-data.org.
 
 > Alle Texte unten sind ohne offiziellen Bezug formuliert und enthalten den Pflicht-Disclaimer.
 > Vor dem Upload nur noch die **Datenschutz-URL** (Schritt B) eintragen.
@@ -25,14 +25,19 @@ Behalte die Fußball-Weltmeisterschaft 2026 (USA · Kanada · Mexiko) im Blick �
 
 LIVE
 • Eigener Live-Tab mit allen laufenden Spielen
+• Countdown ab einer Stunde vor Anstoß („Spiel beginnt in X Minuten")
 • Automatische Aktualisierung der Ergebnisse während der Spiele
-• Tor-Ticker mit Minute und Torschütze
+• Tor-Ticker mit Minute und Torschütze, Platzverweise mit Spielername
 • Optionale Benachrichtigung bei Toren
 
 SPIELPLAN
 • Alle 104 Begegnungen von der Gruppenphase bis zum Finale
 • Anstoßzeiten in deutscher Zeit (automatisch Sommer-/Winterzeit)
 • Filter nach Gruppe, Phase und Mannschaft, Sprung zu „Heute“
+
+SPIELDETAILS
+• Spielverlauf je Partie: Tore und Platzverweise mit Name und Minute
+• Rote Karten-Symbole direkt im Spielplan
 
 TABELLEN & STATISTIK
 • Alle 12 Gruppentabellen (A–L) mit Punkten, Toren und Differenz
@@ -47,7 +52,7 @@ OFFLINE
 • Spielplan, Gruppen und Anstoßzeiten sind eingebaut und funktionieren ohne Internet
 • Live-Ergebnisse werden bei bestehender Verbindung geladen
 
-Datenquellen: Spielplan von openfootball (Public Domain), Live-Ergebnisse von OpenLigaDB.
+Datenquellen: Spielplan von openfootball (Public Domain), Live-Ergebnisse von football-data.org, Spielereignisse von der öffentlichen FIFA-Schnittstelle.
 
 Hinweis: Dies ist eine inoffizielle, werbefreie Fan-App. Sie steht in keiner Verbindung zur FIFA oder zu offiziellen Veranstaltern und verwendet keine offiziellen Logos oder Embleme. Alle Marken gehören ihren jeweiligen Inhabern.
 ```
@@ -86,7 +91,7 @@ Aktualisieren später: Dateien im Repo ändern und neu pushen (`git push`), GitH
 - **Datenverschlüsselung bei der Übertragung:** Ja (Abruf der Live-Daten erfolgt per HTTPS).
 - **Können Nutzer Löschung anfragen / Daten löschen?** Lokale Daten lassen sich in der App über
   „Cache leeren“ bzw. durch Löschen der App-Daten entfernen.
-- Hinweis falls nachgefragt: Die App ruft Spieldaten von OpenLigaDB (Drittanbieter) ab; dabei wird
+- Hinweis falls nachgefragt: Die App ruft Spieldaten von football-data.org (Drittanbieter) ab; dabei wird
   technisch bedingt die IP-Adresse an dessen Server übertragen. Dies ist in der Datenschutzerklärung
   beschrieben.
 

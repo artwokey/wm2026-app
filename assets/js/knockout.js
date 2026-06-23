@@ -14,9 +14,18 @@
     'Quarter-final': 'Viertelfinale',
     'Semi-final': 'Halbfinale'
   };
+  // Kompakte Kürzel für K.-o.-Platzhalter (z. B. "Sieger AF 1") — die ausgeschriebenen
+  // Runden-Namen sind auf schmalen Handy-Displays zu lang und überlagern sich.
+  var ROUND_TAG = {
+    'Round of 32': 'S16',
+    'Round of 16': 'AF',
+    'Quarter-final': 'VF',
+    'Semi-final': 'HF'
+  };
 
   var koIndex = {};   // matchId -> 1-basierter Index innerhalb seiner Runde
   var koById = {};    // matchId -> match
+  var decided = {};   // '1X'/'2X' -> echter Team-Schlüssel (lokal entschieden)
 
   function buildMeta() {
     koIndex = {}; koById = {};
@@ -38,7 +47,7 @@
       var id = parseInt((mw || ml)[1], 10);
       var ref = koById[id];
       if (ref) {
-        var lbl = (ROUND_SHORT[ref.round] || ref.round) + ' ' + (koIndex[id] || '');
+        var lbl = (ROUND_TAG[ref.round] || ROUND_SHORT[ref.round] || ref.round) + ' ' + (koIndex[id] || '');
         return (mw ? 'Sieger ' : 'Verlierer ') + lbl.trim();
       }
     }
@@ -48,6 +57,9 @@
   function teamSide(m, side, live) {
     var token = side === 'home' ? m.team1 : m.team2;
     var realKey = live ? (side === 'home' ? live.homeKey : live.awayKey) : null;
+    // Steht die offizielle Live-Paarung noch nicht, aber der Gruppenplatz ist
+    // lokal schon entschieden (Sieger/Zweiter), echtes Team statt Platzhalter zeigen.
+    if (!realKey && decided[token]) realKey = decided[token];
     if (realKey) {
       var t = WM.teams.info(realKey);
       return '<span class="ko-team"><span class="flag">' + t.flag + '</span>' + U.esc(t.name) + '</span>';
@@ -72,6 +84,7 @@
 
   function render(host) {
     buildMeta();
+    decided = (WM.standings && WM.standings.decidedSlots) ? WM.standings.decidedSlots() : {};
     var byId = WM.store.getLive().byMatchId || {};
     var byRound = {};
     WM.store.koMatches().forEach(function (m) { (byRound[m.round] = byRound[m.round] || []).push(m); });

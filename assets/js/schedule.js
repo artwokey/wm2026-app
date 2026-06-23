@@ -6,11 +6,17 @@
   var filterScope = 'all';   // 'all' | 'A'..'L' | 'ko'
   var filterTeam  = 'all';   // canonical key | 'all'
 
-  function teamChip(name, side) {
-    var t = WM.teams.info(name);
+  // realKey: sobald football-data die Gruppenposition/KO-Begegnung aufgelöst
+  // hat (live.homeKey/awayKey), den echten Team-Key statt des Platzhalters
+  // ("1A", "W49" …) anzeigen.
+  function teamChip(name, side, redCount, realKey) {
+    var t = WM.teams.info(realKey || name);
+    var marks = '';
+    for (var i = 0; i < (redCount || 0); i++) marks += '<span class="rcard"></span>';
+    if (marks) marks = '<span class="rcards" title="Platzverweis">' + marks + '</span>';
     return '<span class="team team-' + side + '">' +
       '<span class="flag">' + t.flag + '</span>' +
-      '<span class="tname">' + U.esc(t.name) + '</span></span>';
+      '<span class="tname">' + U.esc(t.name) + marks + '</span></span>';
   }
 
   function badge(m) {
@@ -34,15 +40,29 @@
     return '<span class="mstatus">' + U.dayHeader(m.kickoffUtc) + '</span>';
   }
 
-  function matchRow(m, live, todayK) {
+  // Platzverweise je Seite zählen (für die roten Karten-Symbole am Teamnamen).
+  function redCounts(m, live, reds) {
+    var out = { home: 0, away: 0 };
+    if (!reds || !reds.length) return out;
+    var hk = (live && live.homeKey) || WM.teams.canonical(m.team1);
+    var ak = (live && live.awayKey) || WM.teams.canonical(m.team2);
+    reds.forEach(function (r) {
+      if (r.teamKey === hk) out.home++;
+      else if (r.teamKey === ak) out.away++;
+    });
+    return out;
+  }
+
+  function matchRow(m, live, todayK, reds) {
     var isToday = U.dayKey(m.kickoffUtc) === todayK;
     var cls = 'match' + (live && live.live ? ' is-live' : '') + (isToday ? ' is-today' : '');
+    var rc = redCounts(m, live, reds);
     return '<div class="' + cls + '" data-mid="' + m.id + '">' +
       '<div class="m-top">' + badge(m) + statusCell(m, live) + '</div>' +
       '<div class="m-main">' +
-        teamChip(m.team1, 'home') +
+        teamChip(m.team1, 'home', rc.home, live && live.homeKey) +
         centerCell(m, live) +
-        teamChip(m.team2, 'away') +
+        teamChip(m.team2, 'away', rc.away, live && live.awayKey) +
       '</div></div>';
   }
 
@@ -84,6 +104,7 @@
   function render(host) {
     var live = WM.store.getLive();
     var byId = live.byMatchId || {};
+    var redsBy = live.redsByMatch || {};
     var todayK = U.todayKey();
 
     var list = applyFilters(WM.store.matches().slice().sort(function (a, b) {
@@ -102,7 +123,7 @@
           var todayTag = (dk === todayK) ? ' <span class="today-tag">HEUTE</span>' : '';
           html += '<h3 class="day-h" id="day-' + dk + '">' + U.fullDate(m.kickoffUtc) + todayTag + '</h3>';
         }
-        html += matchRow(m, byId[m.id], todayK);
+        html += matchRow(m, byId[m.id], todayK, redsBy[m.id]);
       });
     }
     host.innerHTML = html;

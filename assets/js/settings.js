@@ -7,9 +7,9 @@
 
   function lastUpdate() {
     var ts = (WM.store.getLive().ts) || {};
-    if (!ts.openliga) return 'noch nie';
+    if (!ts.matches) return 'noch nie';
     try {
-      return new Intl.DateTimeFormat('de-DE', { timeZone: U.TZ, dateStyle: 'short', timeStyle: 'short' }).format(new Date(ts.openliga)) + ' Uhr';
+      return new Intl.DateTimeFormat('de-DE', { timeZone: U.TZ, dateStyle: 'short', timeStyle: 'short' }).format(new Date(ts.matches)) + ' Uhr';
     } catch (e) { return '—'; }
   }
 
@@ -48,11 +48,13 @@
     host.innerHTML =
       '<div class="settings">' +
         '<section class="card">' +
-          '<h3>Datenquelle</h3>' +
-          '<p class="hint"><b>OpenLigaDB</b> – kostenlos und ohne Schlüssel. Liefert Ergebnisse und Torschützen; ' +
-          'alle 12 Gruppentabellen und die Weißen Westen werden daraus berechnet. ' +
+          '<h3>Datenquellen</h3>' +
+          '<p class="hint"><b>football-data.org</b> – liefert Live-Spielstände, Torschützen und die offiziellen ' +
+          'Gruppentabellen; die Weißen Westen werden daraus berechnet. ' +
+          '<b>FIFA-API</b> – liefert die Ereignisse pro Spiel: Tore und Platzverweise mit Spielername und Minute. ' +
           'Spielplan, Gruppen und Anstoßzeiten sind fest eingebaut und funktionieren offline.</p>' +
-          '<p class="hint">Hinweis: Über diese Quelle stehen keine Assists zur Verfügung – die Scorer-Liste wertet nach Toren.</p>' +
+          '<p class="hint">Hinweis: Sind die FIFA-Ereignisse vorübergehend nicht erreichbar, erkennt der Tor-Ticker ' +
+          'Tore an Spielstand-Änderungen (Minute geschätzt, mit „~" markiert, ohne Schützenname).</p>' +
         '</section>' +
 
         notifyCard() +
@@ -66,7 +68,7 @@
           '<ul class="kv">' +
             '<li><span>Status</span><b>' + (live.ok ? 'OK' : (live.error ? U.esc(live.error) : 'keine Daten')) + '</b></li>' +
             '<li><span>Zuletzt aktualisiert</span><b>' + lastUpdate() + '</b></li>' +
-            '<li><span>Quelle</span><b>api.openligadb.de</b></li>' +
+            '<li><span>Quellen</span><b>api.football-data.org · api.fifa.com</b></li>' +
           '</ul>' +
         '</section>' +
 
@@ -74,7 +76,7 @@
           '<h3>Über</h3>' +
           '<p class="hint">WM 2026 Spielplan &amp; Live · Live-Ticker mit automatisch aktualisiertem Score, Tor-Ticker und ' +
           'Tor-Benachrichtigungen – dazu Spielplan, Anstoßzeiten (deutsche Zeit), alle Gruppentabellen und Statistik. ' +
-          'Daten: eingebauter Spielplan (openfootball) + Live von OpenLigaDB.</p>' +
+          'Daten: eingebauter Spielplan (openfootball) + Live von football-data.org und der FIFA-API.</p>' +
           '<p class="hint">Inoffizielle, werbefreie Fan-App. Nicht mit der FIFA oder offiziellen Veranstaltern ' +
           'verbunden. Alle Marken gehören ihren Inhabern.</p>' +
         '</section>' +
@@ -83,8 +85,8 @@
           '<h3>Rechtliches</h3>' +
           '<p class="hint">Pflichtangaben und Hinweise zum Datenschutz.</p>' +
           '<div class="row">' +
-            '<a class="btn ghost" style="text-decoration:none;display:inline-block" href="datenschutz.html" target="_blank" rel="noopener">Datenschutz</a>' +
-            '<a class="btn ghost" style="text-decoration:none;display:inline-block" href="impressum.html" target="_blank" rel="noopener">Impressum</a>' +
+            '<a class="btn ghost" style="text-decoration:none;display:inline-block" href="datenschutz.html">Datenschutz</a>' +
+            '<a class="btn ghost" style="text-decoration:none;display:inline-block" href="impressum.html">Impressum</a>' +
           '</div>' +
         '</section>' +
       '</div>';

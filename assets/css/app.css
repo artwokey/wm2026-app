@@ -102,6 +102,8 @@ tr.q-third{background:linear-gradient(90deg,rgba(226,181,59,.14),transparent)}
 .legend .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
 .legend .dot.q-top{background:var(--green)}
 .legend .dot.q-third{background:var(--amber)}
+.q-star{flex:none;color:var(--amber);font-size:12px;margin-right:5px}
+.t-cell .q-star{margin-left:4px;margin-right:0}
 
 /* Rankings (stats) */
 .subtabs{display:flex;gap:6px;margin-bottom:12px;background:var(--card);padding:5px;border-radius:12px;border:1px solid var(--line)}
@@ -113,26 +115,28 @@ table.ranking th{font-size:11px;color:var(--muted);text-align:center;border-bott
 table.ranking th.player{text-align:left}
 table.ranking td.r{width:30px;text-align:center;color:var(--muted)}
 table.ranking td.num,table.ranking th.num{text-align:center;width:46px}
+@media(max-width:380px){table.ranking td.num,table.ranking th.num{width:34px;padding-left:3px;padding-right:3px}}
 table.ranking td.num.strong{font-weight:800;font-size:16px}
 table.ranking tbody tr{border-bottom:1px solid rgba(255,255,255,.04)}
-.player{display:flex;flex-direction:column}
-.player .flag{position:absolute}
-td.player{position:relative;padding-left:40px}
-td.player .flag{left:8px;top:50%;transform:translateY(-50%)}
-.pname{font-weight:700;line-height:1.2}
-.pteam{font-size:11px;color:var(--muted)}
+/* Spieler-Zelle: Flagge + Name/Team als Flex-Zeile (keine absolute
+   Positionierung — die überlappte auf schmalen Displays den Text). */
+.pwrap{display:flex;align-items:center;gap:9px;min-width:0}
+.pcol{display:flex;flex-direction:column;min-width:0}
+.pname{font-weight:700;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pteam{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Knockout */
 .ko-wrap{display:flex;flex-direction:column;gap:18px}
 .ko-round-h{margin:0 0 8px;font-size:15px;color:var(--accent)}
 .ko-match{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:8px;cursor:pointer}
 .ko-when{font-size:11px;color:var(--muted);margin-bottom:5px}
-.ko-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
-.ko-team{display:flex;align-items:center;gap:7px;font-weight:600;min-width:0}
+.ko-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px}
+.ko-team{display:flex;align-items:center;gap:6px;font-weight:600;min-width:0;font-size:13px;line-height:1.2;overflow-wrap:anywhere}
+.ko-team .flag,.ko-team .flag-img,.ko-team .flag-ph{flex:0 0 auto}
 .ko-row .ko-team:last-child{flex-direction:row-reverse;text-align:right}
 .ko-team.placeholder{color:var(--muted);font-weight:500;font-style:italic}
-.ko-score{font-weight:800;font-size:18px;text-align:center;min-width:46px}
-.ko-kick{color:var(--accent);font-weight:700;text-align:center;min-width:46px}
+.ko-score{font-weight:800;font-size:18px;text-align:center;min-width:42px}
+.ko-kick{color:var(--accent);font-weight:700;text-align:center;min-width:42px;font-size:13px}
 
 /* Settings */
 .settings{display:flex;flex-direction:column;gap:14px}
@@ -170,10 +174,11 @@ code{background:var(--bg2);padding:2px 6px;border-radius:6px;font-size:12px}
 /* Modal */
 .modal-bg{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;padding:0}
 @media(min-width:560px){.modal-bg{align-items:center;padding:20px}}
-.modal{background:var(--card);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 18px calc(env(safe-area-inset-bottom) + 18px);position:relative;animation:slideup .2s ease}
-@media(min-width:560px){.modal{border-radius:18px}}
+.modal{background:var(--card);width:100%;max-width:480px;border-radius:18px 18px 0 0;position:relative;animation:slideup .2s ease;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+@media(min-width:560px){.modal{border-radius:18px;max-height:88vh}}
 @keyframes slideup{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
-.modal-x{position:absolute;right:10px;top:8px;background:transparent;border:0;color:var(--muted);font-size:28px;line-height:1;cursor:pointer}
+.modal-x{position:absolute;right:6px;top:4px;z-index:2;width:38px;height:38px;background:transparent;border:0;color:var(--muted);font-size:28px;line-height:1;cursor:pointer}
+.modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:18px 18px calc(env(safe-area-inset-bottom) + 18px)}
 .modal-meta{font-size:12px;color:var(--accent);margin-bottom:4px}
 .modal-when{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5}
 .modal-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;text-align:center}
@@ -224,6 +229,18 @@ ul.goals .assist{color:var(--muted);font-size:12px;display:block;margin-left:34p
 .gt-tag{font-style:normal;color:var(--muted);font-size:12px}
 .tick-empty{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);
   font-size:12.5px;color:var(--muted);text-align:center}
+.tick-ball{font-size:12px;line-height:1}
+
+/* Platzverweis-Symbol (rote Karte) – Ticker, Spielplan, Match-Detail */
+.rcard{display:inline-block;width:8px;height:11px;border-radius:2px;background:#e5484d;
+  vertical-align:-1px;box-shadow:0 0 3px rgba(229,72,77,.45)}
+.rcards{display:inline-flex;gap:2px;margin-left:5px}
+
+/* Countdown-Karte: Spiel beginnt in X Minuten */
+.soon-card{border-color:var(--line);box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.lc-soon{display:inline-flex;align-items:center;gap:5px;color:var(--accent);
+  font-weight:800;font-size:12px;letter-spacing:.5px}
+.lc-score.lc-vs{font-size:19px;color:var(--muted);font-weight:700}
 
 /* Kompakte Zeilen (Demnächst / Heute beendet) */
 .live-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;

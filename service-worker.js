@@ -1,9 +1,10 @@
 /* service-worker.js — Offline-Precache der App-Schale + eingebauter Daten.
-   Live-API-Aufrufe (OpenLigaDB) werden NICHT abgefangen (immer Netzwerk).
-   Livescore-Version: eigener Cache-Name mit Präfix wm2026-live-, damit auf
-   gleichem Origin der Cache der Original-Version nicht gelöscht wird. */
+   Live-API-Aufrufe (football-data.org, api.fifa.com) werden NICHT abgefangen
+   (immer Netzwerk). Livescore-Version: eigener Cache-Name mit Präfix
+   wm2026-live-, damit auf gleichem Origin der Cache der Original-Version
+   nicht gelöscht wird. */
 var CACHE_PREFIX = 'wm2026-live-';
-var CACHE = CACHE_PREFIX + 'v2';
+var CACHE = CACHE_PREFIX + 'v21';
 var FLAG_CODES = ['dz','ar','au','at','be','ba','br','ca','cv','co','hr','cw','cz','cd','ec','eg',
   'gb-eng','fr','de','gh','ht','ir','iq','ci','jp','jo','mx','ma','nl','nz','no','pa','py','pt',
   'qa','sa','gb-sct','sn','za','kr','es','se','ch','tn','tr','uy','us','uz'];
@@ -32,7 +33,11 @@ var ASSETS = [
 ].concat(FLAG_CODES.map(function (c) { return 'assets/flags/' + c + '.svg'; }));
 
 self.addEventListener('install', function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () { return self.skipWaiting(); }));
+  // cache:'reload' umgeht den HTTP-Cache des Browsers — sonst können beim
+  // Versions-Wechsel veraltete Dateien in den neuen Precache gelangen.
+  e.waitUntil(caches.open(CACHE).then(function (c) {
+    return c.addAll(ASSETS.map(function (u) { return new Request(u, { cache: 'reload' }); }));
+  }).then(function () { return self.skipWaiting(); }));
 });
 
 self.addEventListener('activate', function (e) {

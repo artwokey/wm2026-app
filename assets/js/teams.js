@@ -70,9 +70,12 @@
     'congo dr': 'DR Congo',
     'democratic republic of congo': 'DR Congo',
     'czechia': 'Czech Republic',
+    'ir iran': 'Iran',
+    'cote d ivoire': 'Ivory Coast',
     'cape verde islands': 'Cape Verde',
     'cabo verde': 'Cape Verde',
     'bosnia and herzegovina': 'Bosnia & Herzegovina',
+    'bosnia herzegovina': 'Bosnia & Herzegovina',
     'curacao': 'Curaçao'
   };
 
