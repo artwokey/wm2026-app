@@ -194,6 +194,37 @@
     return anyPlayed ? qual : {};
   }
 
+  // Gruppendritte, deren Qualifikation als einer der 8 besten Dritten rechnerisch
+  // feststeht. Nur Dritte aus FERTIGEN Gruppen (ihre Stats sind final). Sound &
+  // konservativ: jede noch nicht fertige Gruppe wird als möglicher Konkurrent
+  // gezählt, der einen besseren Dritten stellen könnte ("worst case" für Q).
+  // Liefert { Gruppe: teamKey } der sicheren Dritten.
+  function securedThirds(tables) {
+    var byId = WM.store.getLive().byMatchId || {};
+    var finished = {};
+    WM.store.GROUP_LETTERS.forEach(function (g) {
+      var gms = WM.store.groupMatches(g);
+      finished[g] = !!gms.length && gms.every(function (m) { var b = byId[m.id]; return b && b.finished; });
+    });
+    var unfinishedCount = WM.store.GROUP_LETTERS.filter(function (g) { return !finished[g]; }).length;
+    var fixed = tables.filter(function (t) { return finished[t.group] && t.rows[2]; })
+      .map(function (t) { return { g: t.group, r: t.rows[2] }; });
+    // Könnte O ranggleich oder besser als Q sein (Bedrohung für Qs Top-8-Platz)?
+    // Reihenfolge wie bei den Dritten: Punkte -> Tordifferenz -> Tore.
+    function threatens(O, Q) {
+      if (O.points !== Q.points) return O.points > Q.points;
+      if (O.gd !== Q.gd) return O.gd > Q.gd;
+      if (O.gf !== Q.gf) return O.gf > Q.gf;
+      return true;   // exakt gleich -> Losentscheid möglich -> konservativ als Bedrohung
+    }
+    var out = {};
+    fixed.forEach(function (Q) {
+      var above = fixed.filter(function (O) { return O.g !== Q.g && threatens(O.r, Q.r); }).length;
+      if (above + unfinishedCount <= 7) out[Q.g] = Q.r.teamKey;
+    });
+    return out;
+  }
+
   function teamCell(teamKey, secured) {
     var t = WM.teams.info(teamKey);
     var star = secured ? '<span class="q-star" title="Sechzehntelfinale rechnerisch sicher">★</span>' : '';
@@ -233,7 +264,16 @@
   function render(host) {
     var tables = getTables();
     var thirdQual = bestThirds(tables);
+    // Stern = rechnerisch weitergekommen. Drei Quellen vereinigen:
+    //  1) securedTopTwo(): vorausschauend gesicherter Top-2-Platz (auch in noch
+    //     laufenden Gruppen), 2) decidedSlots(): jedes Team in einem entschiedenen
+    //     KO-Slot (Sieger 1X / Zweiter 2X) — hält die Tabelle mit KO-Baum/Spielplan
+    //     konsistent, 3) securedThirds(): rechnerisch sichere beste Gruppendritte.
     var secured = securedTopTwo();
+    var dec = decidedSlots();
+    Object.keys(dec).forEach(function (k) { secured[dec[k]] = true; });
+    var st = securedThirds(tables);
+    Object.keys(st).forEach(function (g) { secured[st[g]] = true; });
     var live = WM.store.getLive();
 
     var note = '';
