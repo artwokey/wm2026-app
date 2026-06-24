@@ -5,6 +5,7 @@
   var U = WM.util;
   var filterScope = 'all';   // 'all' | 'A'..'L' | 'ko'
   var filterTeam  = 'all';   // canonical key | 'all'
+  var decided = {};          // Slot-Token ('1A'/'2B'…) -> echter Team-Key (aus decidedSlots())
 
   // realKey: sobald football-data die Gruppenposition/KO-Begegnung aufgelöst
   // hat (live.homeKey/awayKey), den echten Team-Key statt des Platzhalters
@@ -57,12 +58,16 @@
     var isToday = U.dayKey(m.kickoffUtc) === todayK;
     var cls = 'match' + (live && live.live ? ' is-live' : '') + (isToday ? ' is-today' : '');
     var rc = redCounts(m, live, reds);
+    // Echtes Team zeigen, sobald die Live-Paarung steht ODER der Gruppenplatz
+    // rechnerisch entschieden ist (gleiche Logik wie im K.-o.-Baum).
+    var rkHome = (live && live.homeKey) || decided[m.team1];
+    var rkAway = (live && live.awayKey) || decided[m.team2];
     return '<div class="' + cls + '" data-mid="' + m.id + '">' +
       '<div class="m-top">' + badge(m) + statusCell(m, live) + '</div>' +
       '<div class="m-main">' +
-        teamChip(m.team1, 'home', rc.home, live && live.homeKey) +
+        teamChip(m.team1, 'home', rc.home, rkHome) +
         centerCell(m, live) +
-        teamChip(m.team2, 'away', rc.away, live && live.awayKey) +
+        teamChip(m.team2, 'away', rc.away, rkAway) +
       '</div></div>';
   }
 
@@ -103,6 +108,7 @@
 
   function render(host) {
     var live = WM.store.getLive();
+    decided = (WM.standings && WM.standings.decidedSlots) ? WM.standings.decidedSlots() : {};
     var byId = live.byMatchId || {};
     var redsBy = live.redsByMatch || {};
     var todayK = U.todayKey();
