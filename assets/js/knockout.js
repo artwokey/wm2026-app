@@ -1,56 +1,58 @@
 /* knockout.js — K.-o.-Baum von Sechzehntelfinale bis Finale.
    Die feste Zuteilung ist hinterlegt: R32 über Gruppenplätze (Sieger Gr. A …),
-   spätere Runden über Sieger/Verlierer früherer Spiele (W##/L##) – diese werden in
-   lesbare Labels aufgelöst (z. B. „Sieger Achtelfinale 1“). Echte Mannschaften
-   ersetzen die Platzhalter, sobald die Paarungen via Live-Daten feststehen. */
+   spätere Runden über Sieger/Verlierer früherer Spiele (W##/L##) – diese werden
+   als „Sieger Spiel ##“ angezeigt und über die FIFA-Spielnummer (ID 73–104)
+   eindeutig zugeordnet. Die Spiele jeder Runde stehen in BRACKET-Reihenfolge
+   (zusammengehörige Paarungen untereinander), nicht nach Anstoßzeit – so ist der
+   vorgegebene Weg ins Finale direkt ablesbar. Echte Mannschaften ersetzen die
+   Platzhalter, sobald die Paarungen via Live-Daten (oder lokal) feststehen. */
 (function (WM) {
   'use strict';
   var U = WM.util;
 
   var ORDER = ['Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Match for third place', 'Final'];
-  var ROUND_SHORT = {
-    'Round of 32': 'Sechzehntelfinale',
-    'Round of 16': 'Achtelfinale',
-    'Quarter-final': 'Viertelfinale',
-    'Semi-final': 'Halbfinale'
-  };
-  // Kompakte Kürzel für K.-o.-Platzhalter (z. B. "Sieger AF 1") — die ausgeschriebenen
-  // Runden-Namen sind auf schmalen Handy-Displays zu lang und überlagern sich.
-  var ROUND_TAG = {
-    'Round of 32': 'S16',
-    'Round of 16': 'AF',
-    'Quarter-final': 'VF',
-    'Semi-final': 'HF'
-  };
+  // Hauptrunden (ohne Spiel um Platz 3) für die rekursive Bracket-Sortierung.
+  var MAIN = ['Round of 32', 'Round of 16', 'Quarter-final', 'Semi-final', 'Final'];
 
-  var koIndex = {};   // matchId -> 1-basierter Index innerhalb seiner Runde
   var koById = {};    // matchId -> match
   var decided = {};   // '1X'/'2X' -> echter Team-Schlüssel (lokal entschieden)
 
   function buildMeta() {
-    koIndex = {}; koById = {};
-    var byRound = {};
-    WM.store.koMatches().forEach(function (m) {
-      koById[m.id] = m;
-      (byRound[m.round] = byRound[m.round] || []).push(m);
-    });
-    Object.keys(byRound).forEach(function (r) {
-      byRound[r].sort(function (a, b) { return a.id - b.id; })
-        .forEach(function (m, i) { koIndex[m.id] = i + 1; });
-    });
+    koById = {};
+    WM.store.koMatches().forEach(function (m) { koById[m.id] = m; });
   }
 
-  // Platzhalter -> lesbares deutsches Label.
+  // Match-IDs je Runde in Bracket-Reihenfolge: zusammengehörige Paarungen stehen
+  // untereinander. Rekursiv aus den W##-Verweisen der jeweils nächsten Runde
+  // abgeleitet (Final -> Halbfinale -> … -> Sechzehntelfinale).
+  function bracketOrder() {
+    function feederId(tok) { var m = /^W(\d+)$/.exec(tok || ''); return m ? parseInt(m[1], 10) : null; }
+    var ord = {};
+    ord['Final'] = WM.store.koMatches().filter(function (m) { return m.round === 'Final'; })
+      .map(function (m) { return m.id; }).sort(function (a, b) { return a - b; });
+    for (var i = MAIN.length - 2; i >= 0; i--) {
+      var round = MAIN[i], ids = [];
+      (ord[MAIN[i + 1]] || []).forEach(function (mid) {
+        var m = koById[mid];
+        if (!m) return;
+        [m.team1, m.team2].forEach(function (tok) {
+          var fid = feederId(tok);
+          if (fid != null && koById[fid] && koById[fid].round === round && ids.indexOf(fid) === -1) ids.push(fid);
+        });
+      });
+      ord[round] = ids;
+    }
+    ord['Match for third place'] = WM.store.koMatches()
+      .filter(function (m) { return m.round === 'Match for third place'; }).map(function (m) { return m.id; });
+    return ord;
+  }
+
+  // Platzhalter -> lesbares deutsches Label. Sieger/Verlierer über die Spielnummer
+  // (eindeutig, weil jede K.-o.-Partie ihre Nummer „Spiel ##“ trägt).
   function resolveSlot(token) {
     var mw = /^W(\d+)$/.exec(token), ml = /^L(\d+)$/.exec(token);
-    if (mw || ml) {
-      var id = parseInt((mw || ml)[1], 10);
-      var ref = koById[id];
-      if (ref) {
-        var lbl = (ROUND_TAG[ref.round] || ROUND_SHORT[ref.round] || ref.round) + ' ' + (koIndex[id] || '');
-        return (mw ? 'Sieger ' : 'Verlierer ') + lbl.trim();
-      }
-    }
+    if (mw) return 'Sieger Spiel ' + mw[1];
+    if (ml) return 'Verlierer Spiel ' + ml[1];
     return WM.teams.placeholderLabel(token);   // Gruppenplätze: Sieger Gr. A, 3. Gr. …
   }
 
@@ -77,7 +79,8 @@
 
   function card(m, live) {
     return '<div class="ko-match" data-mid="' + m.id + '">' +
-      '<div class="ko-when">' + U.dayHeader(m.kickoffUtc) + ' · ' + U.time(m.kickoffUtc).replace(' Uhr', '') + '</div>' +
+      '<div class="ko-when"><span class="ko-no">Spiel ' + m.id + '</span> · ' +
+        U.dayHeader(m.kickoffUtc) + ' · ' + U.time(m.kickoffUtc).replace(' Uhr', '') + '</div>' +
       '<div class="ko-row">' + teamSide(m, 'home', live) + scoreBox(m, live) + teamSide(m, 'away', live) + '</div>' +
     '</div>';
   }
@@ -86,6 +89,7 @@
     buildMeta();
     decided = (WM.standings && WM.standings.decidedSlots) ? WM.standings.decidedSlots() : {};
     var byId = WM.store.getLive().byMatchId || {};
+    var ord = bracketOrder();
     var byRound = {};
     WM.store.koMatches().forEach(function (m) { (byRound[m.round] = byRound[m.round] || []).push(m); });
 
@@ -93,9 +97,13 @@
     ORDER.forEach(function (round) {
       var list = byRound[round];
       if (!list || !list.length) return;
-      list.sort(function (a, b) { return new Date(a.kickoffUtc) - new Date(b.kickoffUtc); });
+      // Bracket-Reihenfolge; Fallback (falls unvollständig): nach Spielnummer.
+      var seq = (ord[round] && ord[round].length === list.length)
+        ? ord[round]
+        : list.map(function (m) { return m.id; }).sort(function (a, b) { return a - b; });
+      var ordered = seq.map(function (id) { return koById[id]; }).filter(Boolean);
       html += '<div class="ko-round"><h3 class="ko-round-h">' + U.esc(U.roundDe(round)) + '</h3>' +
-        list.map(function (m) { return card(m, byId[m.id]); }).join('') + '</div>';
+        ordered.map(function (m) { return card(m, byId[m.id]); }).join('') + '</div>';
     });
 
     host.innerHTML = '<div class="ko-wrap">' + (html || '<p class="empty">Keine K.-o.-Spiele gefunden.</p>') + '</div>';

@@ -4,7 +4,7 @@
    wm2026-live-, damit auf gleichem Origin der Cache der Original-Version
    nicht gelöscht wird. */
 var CACHE_PREFIX = 'wm2026-live-';
-var CACHE = CACHE_PREFIX + 'v23';
+var CACHE = CACHE_PREFIX + 'v24';
 var FLAG_CODES = ['dz','ar','au','at','be','ba','br','ca','cv','co','hr','cw','cz','cd','ec','eg',
   'gb-eng','fr','de','gh','ht','ir','iq','ci','jp','jo','mx','ma','nl','nz','no','pa','py','pt',
   'qa','sa','gb-sct','sn','za','kr','es','se','ch','tn','tr','uy','us','uz'];
