@@ -723,22 +723,28 @@
   // Pro Spieler (teamKey|Name) das Maximum nehmen, damit weder ältere Tore
   // (football-data) noch frische Tore (FIFA) verloren gehen. So kann ein Spieler
   // nicht in der Scorer-, aber nicht in der Torschützenliste auftauchen.
+  // Schlüssel OHNE Akzente/Diakritika, damit football-data ("Julián Quiñones")
+  // und FIFA ("Julian Quinones") als EIN Spieler zusammenfallen (sonst Doppel-
+  // eintrag in der Torschützenliste). Für die Anzeige wird der akzentuierte
+  // (korrektere) Name bevorzugt.
   function mergeTopScorers(fdList, fifaList) {
+    function deAccent(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+    function keyOf(p) { return p.teamKey + '|' + deAccent(p.name).toLowerCase().replace(/\s+/g, ' ').trim(); }
+    function hasAccent(s) { return String(s || '') !== deAccent(s); }
     var byKey = {};
-    function keyOf(p) { return p.teamKey + '|' + String(p.name || '').toLowerCase(); }
-    (fdList || []).forEach(function (p) {
-      byKey[keyOf(p)] = { name: p.name, teamKey: p.teamKey, goals: p.goals || 0, assists: p.assists || 0 };
-    });
-    (fifaList || []).forEach(function (p) {
-      if (!(p.goals > 0)) return;
-      var k = keyOf(p);
-      if (byKey[k]) {
-        if ((p.goals || 0) > byKey[k].goals) byKey[k].goals = p.goals || 0;
-        if ((p.assists || 0) > byKey[k].assists) byKey[k].assists = p.assists || 0;
-      } else {
+    function add(p, fromFifa) {
+      if (fromFifa && !(p.goals > 0)) return;
+      var k = keyOf(p), e = byKey[k];
+      if (!e) {
         byKey[k] = { name: p.name, teamKey: p.teamKey, goals: p.goals || 0, assists: p.assists || 0 };
+        return;
       }
-    });
+      if ((p.goals || 0) > e.goals) e.goals = p.goals || 0;
+      if ((p.assists || 0) > e.assists) e.assists = p.assists || 0;
+      if (hasAccent(p.name) && !hasAccent(e.name)) e.name = p.name;   // akzentuierten Namen bevorzugen
+    }
+    (fdList || []).forEach(function (p) { add(p, false); });
+    (fifaList || []).forEach(function (p) { add(p, true); });
     return Object.keys(byKey).map(function (k) { return byKey[k]; })
       .filter(function (p) { return p.goals > 0; });
   }
